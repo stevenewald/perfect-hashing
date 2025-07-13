@@ -7,13 +7,9 @@
 #include <cassert>
 
 #include <algorithm>
-#include <array>
-#include <bit>
-#include <functional>
-#include <source_location>
 #include <string>
-#include <utility>
 
+namespace gloss {
 inline auto
 name() -> std::string
 {
@@ -30,69 +26,71 @@ template <typename R>
 concept PairRange =
     std::ranges::forward_range<R> && Pair<std::ranges::range_value_t<R>>;
 
-// for shorthands
 template <const auto& Table>
 requires PairRange<decltype(Table)>
 struct lookup_lut {
+    using key_type = std::ranges::range_value_t<decltype(Table)>::first_type;
+    using mapped_type = std::ranges::range_value_t<decltype(Table)>::second_type;
+
     using u32 = std::uint32_t;
     using u64 = std::uint64_t;
 
-    using first_type = std::ranges::range_value_t<decltype(Table)>::first_type;
-    using second_type = std::ranges::range_value_t<decltype(Table)>::second_type;
+    using value_type = std::conditional_t<sizeof(key_type) <= sizeof(u32), u32, u64>;
 
-    struct vals {
-        static constexpr u32 max_bits = []() {
-            second_type max = 0;
-            for (const auto& pair : Table) {
-                max = std::max(pair.second, max);
-            }
-            return __builtin_clz(max);
-        }();
-        u32 magic{};
-        static constexpr u32 nbits = (sizeof(u32) * __CHAR_BIT__) - max_bits;
-        static constexpr u32 mask = (1u << nbits) - 1u;
-        static constexpr u32 shift = (sizeof(u32) * __CHAR_BIT__) - nbits;
-        u32 lut = {};
-    };
-
-    constexpr second_type
-    operator()(const first_type& search_key)
+    consteval explicit lookup_lut(std::uint32_t max_attempts = 100'000)
     {
-        return (values.lut >> ((search_key * values.magic) >> values.shift))
-               & values.mask;
+        random::pcg rand_pcg{};
+
+        auto attempt_find_perfect_hash = [&]() {
+            magic_ = rand_pcg();
+            for (const auto& [key, value] : Table) {
+                u32 shift = ((key * magic_) >> SHIFT);
+                if (shift >= sizeof(u32) * __CHAR_BIT__) {
+                    lut_ = {};
+                    return;
+                }
+
+                lut_ |= value << shift;
+            }
+
+            for (const auto& [key, value] : Table) {
+                if ((lut_ >> (key * magic_ >> SHIFT) & MASK) != value) {
+                    lut_ = {};
+                    return;
+                }
+            }
+        };
+
+        while (lut_ == 0 && max_attempts-- > 0) {
+            attempt_find_perfect_hash();
+        }
     }
 
-    static constexpr u64 MAX_ATTEMPTS = 100'000;
-    static constexpr vals values = []() {
-        rndom::pcg rand_pcg{};
-        u64 max_attempts = MAX_ATTEMPTS;
-        vals v = {};
-        static_assert(v.nbits * Table.size() <= (sizeof(u32) * __CHAR_BIT__));
-        while (max_attempts-- > 0) {
-            v.magic = rand_pcg();
-            for (const auto& pair : Table) {
-                u32 s2 = ((pair.first * v.magic) >> v.shift);
-                if (s2 >= sizeof(u32) * __CHAR_BIT__) {
-                    v.lut = {};
-                    break;
-                }
+    constexpr mapped_type
+    operator()(const key_type& search_key)
+    {
+        return static_cast<mapped_type>(
+            (lut_ >> ((search_key * magic_) >> SHIFT)) & MASK
+        );
+    }
 
-                v.lut |= pair.second << s2;
-            }
-            if (v.lut == 0)
-                continue;
-
-            for (const auto& pair : Table) {
-                if ((v.lut >> (pair.first * v.magic >> v.shift) & v.mask)
-                    != pair.second) {
-                    v.lut = {};
-                    break;
-                }
-            }
-            if (v.lut != 0)
-                return v;
+private:
+    static constexpr u32 MAX_BITS = []() {
+        mapped_type max = 0;
+        for (const auto& pair : Table) {
+            max = std::max(pair.second, max);
         }
+        // std::countl_zero counts differently. use builtin
+        return __builtin_clz(max);
     }();
+
+    static constexpr value_type NBITS = (sizeof(u32) * __CHAR_BIT__) - MAX_BITS;
+    static constexpr value_type MASK = (1u << NBITS) - 1u;
+    static constexpr value_type SHIFT = (sizeof(u32) * __CHAR_BIT__) - NBITS;
+    static_assert(NBITS * Table.size() <= (sizeof(u32) * __CHAR_BIT__));
+
+    value_type magic_{};
+    value_type lut_{};
 };
 
 template <const auto& Table>
@@ -102,3 +100,4 @@ lookup(const auto& search_key)
     lookup_lut<Table> table{};
     return table(search_key);
 }
+} // namespace gloss
