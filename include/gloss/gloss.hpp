@@ -35,7 +35,8 @@ struct lookup_lut {
     using u32 = std::uint32_t;
     using u64 = std::uint64_t;
 
-    using value_type = std::conditional_t<sizeof(key_type) <= sizeof(u32), u32, u64>;
+    // TODO: actually make conditional
+    using value_type = std::conditional_t<sizeof(key_type) <= sizeof(u32), u64, u64>;
 
     consteval explicit lookup_lut(std::uint32_t max_attempts = 100'000)
     {
@@ -44,17 +45,17 @@ struct lookup_lut {
         auto attempt_find_perfect_hash = [&]() {
             magic_ = rand_pcg();
             for (const auto& [key, value] : Table) {
-                u32 shift = ((key * magic_) >> SHIFT);
-                if (shift >= sizeof(u32) * __CHAR_BIT__) {
+                u32 shift = u32((key * magic_) >> SHIFT);
+                if (shift >= sizeof(value_type) * __CHAR_BIT__) {
                     lut_ = {};
                     return;
                 }
 
-                lut_ |= value << shift;
+                lut_ |= value_type(value) << shift;
             }
 
             for (const auto& [key, value] : Table) {
-                if ((lut_ >> (key * magic_ >> SHIFT) & MASK) != value) {
+                if ((lut_ >> (value_type(key) * magic_ >> SHIFT) & MASK) != value) {
                     lut_ = {};
                     return;
                 }
@@ -85,9 +86,12 @@ private:
     }();
 
     static constexpr value_type NBITS = (sizeof(u32) * __CHAR_BIT__) - MAX_BITS;
-    static constexpr value_type MASK = (1u << NBITS) - 1u;
+    static constexpr value_type MASK = (1uz << NBITS) - 1uz;
     static constexpr value_type SHIFT = (sizeof(u32) * __CHAR_BIT__) - NBITS;
-    static_assert(NBITS * Table.size() <= (sizeof(u32) * __CHAR_BIT__));
+    static_assert(
+        NBITS * Table.size() <= (sizeof(value_type) * __CHAR_BIT__),
+        "Values can fit in LUT"
+    );
 
     value_type magic_{};
     value_type lut_{};
