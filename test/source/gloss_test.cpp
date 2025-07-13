@@ -2,11 +2,6 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-TEST_CASE("Name is gloss", "[library]")
-{
-    REQUIRE(gloss::name() == "gloss");
-}
-
 TEST_CASE("Map int to int", "[library]")
 {
     static constexpr auto TEST = std::array{
