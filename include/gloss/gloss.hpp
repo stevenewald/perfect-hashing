@@ -7,6 +7,9 @@
 
 namespace gloss {
 
+using u32 = std::uint32_t;
+using u64 = std::uint64_t;
+
 namespace random {
 // https://www.pcg-random.org
 struct pcg {
@@ -42,20 +45,6 @@ struct lookup_lut {
     using key_type = std::ranges::range_value_t<decltype(Table)>::first_type;
     using mapped_type = std::ranges::range_value_t<decltype(Table)>::second_type;
 
-    using u32 = std::uint32_t;
-    using u64 = std::uint64_t;
-
-    static constexpr ValueType MAX_BITS = []() {
-        mapped_type max = 0;
-        for (const auto& pair : Table) {
-            max = std::max(pair.second, max);
-        }
-        // std::countl_zero counts differently, so use builtin
-        return __builtin_clz(max);
-    }();
-
-    using value_type = u64;
-
     consteval explicit lookup_lut(std::uint32_t max_attempts = 100'000) noexcept
     {
         random::pcg rand_pcg{};
@@ -68,16 +57,16 @@ struct lookup_lut {
             magic_ = rand_pcg();
             for (const auto& [key, value] : Table) {
                 u32 shift = u32((key * magic_) >> SHIFT);
-                if (shift >= sizeof(value_type) * __CHAR_BIT__) {
+                if (shift >= sizeof(ValueType) * __CHAR_BIT__) {
                     lut_ = {};
                     return;
                 }
 
-                lut_ |= value_type(value) << shift;
+                lut_ |= ValueType(value) << shift;
             }
 
             for (const auto& [key, value] : Table) {
-                if ((lut_ >> (value_type(key) * magic_ >> SHIFT) & MASK) != value) {
+                if ((lut_ >> (ValueType(key) * magic_ >> SHIFT) & MASK) != value) {
                     lut_ = {};
                     return;
                 }
@@ -104,24 +93,37 @@ struct lookup_lut {
     }
 
 private:
+    static constexpr ValueType MAX_BITS = []() {
+        u32 max = 0;
+        for (const auto& pair : Table) {
+            max = std::max(static_cast<u32>(pair.second), max);
+        }
+        // std::countl_zero counts differently, so use builtin
+        return std::countl_zero(max);
+    }();
     static constexpr ValueType NBITS = (sizeof(u32) * __CHAR_BIT__) - MAX_BITS;
     static constexpr ValueType MASK = (1uz << NBITS) - 1uz;
     static constexpr ValueType SHIFT = (sizeof(u32) * __CHAR_BIT__) - NBITS;
 
-    value_type magic_{};
-    value_type lut_{};
+    ValueType magic_{};
+    ValueType lut_{};
 };
 
 template <const auto& Table>
 auto
 lookup(const auto& search_key)
 {
-    // first, try with 32 bits. If that fails, fallback to 64
-    if constexpr (constexpr lookup_lut<Table, std::uint32_t> TABLE{}; TABLE) {
-        return TABLE(search_key);
+    if constexpr (constexpr lookup_lut<Table, u32> TABLE32{}; TABLE32) {
+        return TABLE32(search_key);
+    }
+    else if constexpr (constexpr lookup_lut<Table, u64> TABLE64{}; TABLE64) {
+        return TABLE64(search_key);
     }
     else {
-        return lookup_lut<Table, std::uint64_t>{}(search_key);
+        static_assert(
+            false,
+            "Too many bits required for word-based LUT. Use array-based LUT instead"
+        );
     }
 }
 } // namespace gloss
