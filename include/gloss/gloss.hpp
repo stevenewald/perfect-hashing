@@ -4,6 +4,9 @@
 #include <cstdint>
 
 #include <algorithm>
+#include <array>
+#include <bit>
+#include <ranges>
 
 namespace gloss {
 
@@ -110,20 +113,95 @@ private:
 };
 
 template <const auto& Table>
+requires PairRange<decltype(Table)>
+struct lookup_array {
+    using ValueType = u64;
+
+    using key_type = std::ranges::range_value_t<decltype(Table)>::first_type;
+    using mapped_type = std::ranges::range_value_t<decltype(Table)>::second_type;
+
+    consteval explicit lookup_array(std::uint32_t max_attempts = 100'000) noexcept
+    {
+        random::pcg rand_pcg{};
+
+        auto attempt_find_perfect_hash = [&]() {
+            magic_ = rand_pcg();
+            for (const auto& [key, value] : Table) {
+                u32 shift = u32(((key * magic_) >> SHIFT) & SIZE_MASK);
+                if (shift >= SIZE) {
+                    table_ = {};
+                    magic_ = {};
+                    return;
+                }
+
+                table_[shift] = value;
+            }
+
+            for (const auto& [key, value] : Table) {
+                if (table_[(ValueType(key) * magic_ >> SHIFT) & SIZE_MASK] != value) {
+                    table_ = {};
+                    magic_ = {};
+                    return;
+                }
+            }
+        };
+
+        while (magic_ == 0 && max_attempts-- > 0) {
+            attempt_find_perfect_hash();
+        }
+    }
+
+    constexpr explicit
+    operator bool() const noexcept
+    {
+        return magic_ != 0;
+    }
+
+    constexpr mapped_type
+    operator()(const key_type& search_key) const noexcept
+    {
+        return static_cast<mapped_type>(
+            table_[((ValueType(search_key) * magic_ >> SHIFT)) & SIZE_MASK]
+        );
+    }
+
+private:
+    static constexpr std::size_t SIZE = Table.size();
+    static constexpr ValueType MAX_BITS = []() {
+        u32 max = 0;
+        for (const auto& pair : Table) {
+            max = std::max(static_cast<u32>(pair.second), max);
+        }
+        // std::countl_zero counts differently, so use builtin
+        return std::countl_zero(max);
+    }();
+    static constexpr ValueType NBITS = (sizeof(u32) * __CHAR_BIT__) - MAX_BITS;
+    static constexpr ValueType SHIFT = (sizeof(u32) * __CHAR_BIT__) - NBITS;
+    static constexpr u64 SIZE_MASK =
+        (1u << static_cast<unsigned>(std::bit_width(SIZE - 1))) - 1u;
+
+    ValueType magic_{};
+    std::array<key_type, SIZE> table_{};
+};
+
+enum class LookupMethod : std::uint8_t { word, array, any };
+
+template <const auto& Table, LookupMethod Method = LookupMethod::any>
 auto
 lookup(const auto& search_key)
 {
-    if constexpr (constexpr lookup_lut<Table, u32> TABLE32{}; TABLE32) {
+    if constexpr (constexpr lookup_lut<Table, u32> TABLE32{};
+                  Method != LookupMethod::array && TABLE32) {
         return TABLE32(search_key);
     }
-    else if constexpr (constexpr lookup_lut<Table, u64> TABLE64{}; TABLE64) {
+    else if constexpr (constexpr lookup_lut<Table, u64> TABLE64{};
+                       Method != LookupMethod::array && TABLE64) {
         return TABLE64(search_key);
     }
-    else {
-        static_assert(
-            false,
-            "Too many bits required for word-based LUT. Use array-based LUT instead"
-        );
+    else if constexpr (constexpr lookup_array<Table> TABLE_ARRAY{};
+                       Method != LookupMethod::word && TABLE_ARRAY) {
+        return TABLE_ARRAY(search_key);
     }
 }
+
 } // namespace gloss
