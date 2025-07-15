@@ -19,16 +19,17 @@ struct pcg {
     [[nodiscard]] constexpr auto
     operator()() noexcept -> std::uint32_t
     {
-        std::uint64_t old_state = state;
-        state = old_state * 6364136223846793005u + increment;
+        std::uint64_t old_state = state_;
+        state_ = old_state * 6364136223846793005u + increment_;
         auto xor_shifted =
             static_cast<std::uint32_t>(((old_state >> 18u) ^ old_state) >> 27u);
         auto rot = static_cast<std::uint32_t>(old_state >> 59u);
-        return (xor_shifted >> rot) | (xor_shifted << ((-rot) & 31u));
+        return (xor_shifted >> rot) | (xor_shifted << ((32u - rot) & 31u));
     }
 
-    std::uint64_t increment{1442695040888963407u};
-    std::uint64_t state{5573589319906701683u + increment};
+private:
+    std::uint64_t increment_{1442695040888963407u};
+    std::uint64_t state_{5573589319906701683u + increment_};
 };
 } // namespace random
 
