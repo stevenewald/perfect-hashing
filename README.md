@@ -4,6 +4,11 @@
 
 A lightweight [minimal perfect hashing](https://en.wikipedia.org/wiki/Perfect_hash_function) library built to play around with C++ metaprogramming, compile-time optimizations, and neat hashing tricks.
 
+## Examples
+
+1. [Int → Int](https://godbolt.org/z/MMWrETx4E)
+2. [String → Int](https://godbolt.org/z/e943G4xh3)
+
 ## What is this?
 
 A small side project to experiment with compile-time techniques in modern C++. The main parts are in [gloss.hpp](https://github.com/stevenewald/perfect-hashing/blob/main/include/gloss/gloss.hpp) and [gloss_test.cpp](https://github.com/stevenewald/perfect-hashing/blob/main/test/source/gloss_test.cpp).
@@ -19,6 +24,7 @@ It's great when you have a known set of keys and need lightning-fast lookups, li
 ## How does compile-time metaprogramming fit in?
 
 By doing all the heavy lifting at compile time (like figuring out the ideal hash function), the runtime lookups end up super simple and fast.
+
 
 ## What's next?
 

@@ -27,6 +27,23 @@ TEST_CASE("Map int to int", "[library]")
     static_assert(lookup<TEST, LookupMethod::array>(7u) == 8);
 }
 
+TEST_CASE("Map int to int 2", "[library]")
+{
+    static constexpr auto TEST = std::array{
+        std::pair<uint32_t, uint32_t>{5, 1},
+         std::pair<uint32_t, uint32_t>{4, 2},
+        std::pair<uint32_t, uint32_t>{3, 3},
+         std::pair<uint32_t, uint32_t>{2, 4},
+        std::pair<uint32_t, uint32_t>{1, 5}
+    };
+
+    // REQUIRE(gloss::lookup<TEST>(5) == 1);
+    // REQUIRE(gloss::lookup<TEST>(4) == 2);
+    // REQUIRE(gloss::lookup<TEST>(3) == 3);
+    REQUIRE(gloss::lookup<TEST, LookupMethod::array>(2) == 4);
+    REQUIRE(gloss::lookup<TEST, LookupMethod::array>(1) == 5);
+}
+
 TEST_CASE("Map string to int", "[library]")
 {
     static constexpr auto TEST = std::array{
