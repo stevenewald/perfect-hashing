@@ -321,7 +321,7 @@ private:
 enum class LookupMethod : std::uint8_t { word, array, any };
 
 template <const auto& Table, LookupMethod Method = LookupMethod::any>
-auto
+constexpr auto
 lookup(const auto& search_key)
 {
     if constexpr (Method != LookupMethod::array) {
