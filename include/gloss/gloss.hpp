@@ -15,6 +15,13 @@ using u8 = std::uint8_t;
 using u16 = std::uint16_t;
 using u32 = std::uint32_t;
 using u64 = std::uint64_t;
+#if defined(__SIZEOF_INT128__)
+#  pragma GCC diagnostic push
+#  pragma GCC diagnostic ignored "-Wpedantic"
+using i128 = __int128;
+using u128 = unsigned __int128;
+#  pragma GCC diagnostic pop
+#endif
 
 namespace random {
 // https://www.pcg-random.org
@@ -78,6 +85,30 @@ to(const From& data)
     }
 }
 
+// TODO: better name
+template <std::size_t MaxSize>
+consteval auto
+get_type()
+{
+    if constexpr (MaxSize <= sizeof(u8)) {
+        return u8{};
+    }
+    else if constexpr (MaxSize <= sizeof(u16)) {
+        return u16{};
+    }
+    else if constexpr (MaxSize <= sizeof(u32)) {
+        return u32{};
+    }
+    else if constexpr (MaxSize <= sizeof(u64)) {
+        return u64{};
+    }
+#if defined(__SIZEOF_INT128__)
+    else if constexpr (MaxSize <= sizeof(u128)) {
+        return u128{};
+    }
+#endif
+}
+
 template <const auto& Table>
 struct entries {
     using pair_type = std::ranges::range_value_t<decltype(Table)>;
@@ -94,14 +125,7 @@ struct entries {
                 return max;
             }();
 
-            if constexpr (MAX_SIZE <= sizeof(u8))
-                return u8{};
-            else if constexpr (MAX_SIZE <= sizeof(u16))
-                return u16{};
-            else if constexpr (MAX_SIZE <= sizeof(u32))
-                return u32{};
-            else if constexpr (MAX_SIZE <= sizeof(u64))
-                return u64{};
+            return get_type<MAX_SIZE>();
         }
         else if constexpr (std::is_same_v<
                                typename pair_type::first_type, const char*>) {
@@ -119,14 +143,7 @@ struct entries {
                 return max;
             }();
 
-            if constexpr (MAX_SIZE <= sizeof(u8))
-                return u8{};
-            else if constexpr (MAX_SIZE <= sizeof(u16))
-                return u16{};
-            else if constexpr (MAX_SIZE <= sizeof(u32))
-                return u32{};
-            else if constexpr (MAX_SIZE <= sizeof(u64))
-                return u64{};
+            return get_type<MAX_SIZE>();
         }
         else {
             return typename pair_type::first_type{};
@@ -144,14 +161,7 @@ struct entries {
                 return max;
             }();
 
-            if constexpr (MAX_SIZE <= sizeof(u8))
-                return u8{};
-            else if constexpr (MAX_SIZE <= sizeof(u16))
-                return u16{};
-            else if constexpr (MAX_SIZE <= sizeof(u32))
-                return u32{};
-            else if constexpr (MAX_SIZE <= sizeof(u64))
-                return u64{};
+            return get_type<MAX_SIZE>();
         }
         else {
             return typename pair_type::second_type{};
@@ -186,7 +196,7 @@ struct lookup_lut {
     using mapped_type = entries<Table>::mapped_type;
     using result_type = std::ranges::range_value_t<decltype(Table)>::second_type;
 
-    consteval explicit lookup_lut(std::uint32_t max_attempts = 100'000) noexcept
+    consteval explicit lookup_lut(std::uint32_t max_attempts = 10'000) noexcept
     {
         random::pcg rand_pcg{};
 
@@ -259,7 +269,7 @@ struct lookup_array {
     using mapped_type = entries<Table>::mapped_type;
     using result_type = std::ranges::range_value_t<decltype(Table)>::second_type;
 
-    consteval explicit lookup_array(std::uint32_t max_attempts = 100'000) noexcept
+    consteval explicit lookup_array(std::uint32_t max_attempts = 10'000) noexcept
     {
         random::pcg rand_pcg{};
 
