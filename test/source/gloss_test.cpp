@@ -32,7 +32,6 @@ TEST_CASE("Map string to int", "[library]")
     REQUIRE(lookup<TEST, LookupMethod::word>("bye") == 6);
 }
 
-#ifndef TARGET_OS_X
 TEST_CASE("Map int to string", "[library]")
 {
     static constexpr auto TEST = std::array{
@@ -52,7 +51,6 @@ TEST_CASE("Map int to long string", "[library]")
     REQUIRE(lookup<TEST, LookupMethod::array>(8) == "hello!");
     REQUIRE(lookup<TEST, LookupMethod::array>(6) == "bye!");
 }
-#endif
 
 TEST_CASE("Map const char* to int", "[library]")
 {
