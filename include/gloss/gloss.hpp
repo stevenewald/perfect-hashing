@@ -338,7 +338,7 @@ lookup(const auto& search_key)
             return TABLE64(search_key);
         }
     }
-    else if constexpr (Method != LookupMethod::word) {
+    if constexpr (Method != LookupMethod::word) {
         if constexpr (constexpr lookup_array<Table> TABLE_ARRAY{}; TABLE_ARRAY) {
             return TABLE_ARRAY(search_key);
         }
