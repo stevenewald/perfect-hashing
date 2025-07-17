@@ -12,6 +12,8 @@
 using gloss::lookup;
 using gloss::LookupMethod;
 
+// Small value tests
+
 TEST_CASE("Map int to int", "[library]")
 {
     static constexpr auto TEST = std::array{
@@ -20,16 +22,23 @@ TEST_CASE("Map int to int", "[library]")
     };
     static_assert(lookup<TEST, LookupMethod::word>(5u) == 6);
     static_assert(lookup<TEST, LookupMethod::word>(7u) == 8);
+
+    static_assert(lookup<TEST, LookupMethod::array>(5u) == 6);
+    static_assert(lookup<TEST, LookupMethod::array>(7u) == 8);
 }
 
 TEST_CASE("Map string to int", "[library]")
 {
     static constexpr auto TEST = std::array{
-        std::pair<std::string_view, uint8_t>{"hi",  8},
-        std::pair<std::string_view, uint8_t>{"bye", 6}
+        std::pair<std::string, uint8_t>{"hi",  8},
+        std::pair<std::string, uint8_t>{"bye", 6}
     };
+
     static_assert(lookup<TEST, LookupMethod::word>("hi") == 8);
     static_assert(lookup<TEST, LookupMethod::word>("bye") == 6);
+
+    static_assert(lookup<TEST, LookupMethod::array>("hi") == 8);
+    static_assert(lookup<TEST, LookupMethod::array>("bye") == 6);
 }
 
 TEST_CASE("Map int to string", "[library]")
@@ -38,18 +47,40 @@ TEST_CASE("Map int to string", "[library]")
         std::pair<uint8_t, std::string>{8, "h"},
          std::pair<uint8_t, std::string>{6, "b"}
     };
-    static_assert(lookup<TEST, LookupMethod::array>(8) == "h");
+
+    static_assert(lookup<TEST, LookupMethod::word>(8) == "h");
     static_assert(lookup<TEST, LookupMethod::word>(6) == "b");
+
+    static_assert(lookup<TEST, LookupMethod::array>(8) == "h");
+    static_assert(lookup<TEST, LookupMethod::array>(6) == "b");
 }
 
-TEST_CASE("Map int to long string", "[library]")
+TEST_CASE("Map string to string", "[library]")
 {
     static constexpr auto TEST = std::array{
-        std::pair<uint8_t, std::string>{8, "hello!"},
-        std::pair<uint8_t, std::string>{6, "bye!"  }
+        std::pair<std::string, std::string>{"a", "b"},
+        std::pair<std::string, std::string>{"c", "d"}
     };
-    static_assert(lookup<TEST, LookupMethod::array>(8) == "hello!");
-    static_assert(lookup<TEST, LookupMethod::array>(6) == "bye!");
+
+    static_assert(lookup<TEST, LookupMethod::word>("a") == "b");
+    static_assert(lookup<TEST, LookupMethod::word>("c") == "d");
+
+    static_assert(lookup<TEST, LookupMethod::array>("a") == "b");
+    static_assert(lookup<TEST, LookupMethod::array>("c") == "d");
+}
+
+TEST_CASE("Map const char* to string", "[library]")
+{
+    static constexpr auto TEST = std::array{
+        std::pair<const char*, std::string>{"a", "b"},
+        std::pair<const char*, std::string>{"c", "d"}
+    };
+
+    static_assert(lookup<TEST, LookupMethod::word>("a") == "b");
+    static_assert(lookup<TEST, LookupMethod::word>("c") == "d");
+
+    static_assert(lookup<TEST, LookupMethod::array>("a") == "b");
+    static_assert(lookup<TEST, LookupMethod::array>("c") == "d");
 }
 
 TEST_CASE("Map const char* to int", "[library]")
@@ -58,8 +89,12 @@ TEST_CASE("Map const char* to int", "[library]")
         std::pair<const char*, uint8_t>{"hi",  8},
         std::pair<const char*, uint8_t>{"bye", 6}
     };
+
     static_assert(lookup<TEST, LookupMethod::word>("hi") == 8);
     static_assert(lookup<TEST, LookupMethod::word>("bye") == 6);
+
+    static_assert(lookup<TEST, LookupMethod::array>("hi") == 8);
+    static_assert(lookup<TEST, LookupMethod::array>("bye") == 6);
 }
 
 TEST_CASE("Map many ints to int", "[library]")
@@ -81,9 +116,40 @@ TEST_CASE("Map many ints to int", "[library]")
     for (std::uint32_t i = 1; i <= 12; ++i) {
         REQUIRE(gloss::lookup<TEST, LookupMethod::word>(i) == i + 10);
     }
+    for (std::uint32_t i = 1; i <= 12; ++i) {
+        REQUIRE(gloss::lookup<TEST, LookupMethod::array>(i) == i + 10);
+    }
 }
 
-TEST_CASE("Array LUT", "[library]")
+// Array tests
+
+TEST_CASE("Map int to long string", "[library]")
+{
+    static constexpr auto TEST = std::array{
+        std::pair<uint8_t, std::string>{8, "hello!"  },
+        std::pair<uint8_t, std::string>{6, "bye!"    },
+        std::pair<uint8_t, std::string>{3, "gutentag"}
+    };
+
+    static_assert(lookup<TEST, LookupMethod::array>(8) == "hello!");
+    static_assert(lookup<TEST, LookupMethod::array>(6) == "bye!");
+    static_assert(lookup<TEST, LookupMethod::array>(3) == "gutentag");
+}
+
+TEST_CASE("Map long string to int", "[library]")
+{
+    static constexpr auto TEST = std::array{
+        std::pair<std::string, uint8_t>{"hello!",   8},
+        std::pair<std::string, uint8_t>{"bye!",     6},
+        std::pair<std::string, uint8_t>{"gutentag", 3}
+    };
+
+    static_assert(lookup<TEST, LookupMethod::array>("hello!") == 8);
+    static_assert(lookup<TEST, LookupMethod::array>("bye!") == 6);
+    static_assert(lookup<TEST, LookupMethod::array>("gutentag") == 3);
+}
+
+TEST_CASE("Many int to int mappings", "[library]")
 {
     static constexpr std::size_t SIZE = 128;
     static constexpr std::array<std::pair<uint32_t, uint32_t>, SIZE> TEST = []() {
@@ -97,6 +163,8 @@ TEST_CASE("Array LUT", "[library]")
         REQUIRE(gloss::lookup<TEST, LookupMethod::array>(i) == i + 13);
     }
 }
+
+// to<T> tests
 
 TEST_CASE("to<T>(const char*)", "[library]")
 {
