@@ -49,7 +49,7 @@ to(const From& data)
 
     if constexpr (STRING_TO_INTEGRAL) {
         To tmp{};
-        for (std::size_t i = 0; i < data.size(); ++i) {
+        for (std::size_t i = 0; i < sizeof(To) && i < data.size(); ++i) {
             tmp |= static_cast<To>(static_cast<To>(data[i]) << (i * __CHAR_BIT__));
         }
         return tmp;
@@ -64,7 +64,7 @@ to(const From& data)
     else if constexpr (INTEGRAL_TO_STRING) {
         std::size_t str_size{};
         std::string chars(sizeof(From), '\0');
-        for (std::size_t i = 0; i < chars.size(); ++i) {
+        for (std::size_t i = 0; i < sizeof(To) && i < chars.size(); ++i) {
             chars[i] = static_cast<char>(data >> (i * __CHAR_BIT__));
             if ((data >> (i * __CHAR_BIT__)) != 0) {
                 str_size = i + 1;
