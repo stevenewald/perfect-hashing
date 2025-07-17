@@ -47,12 +47,8 @@ template <typename To, typename From>
 constexpr To
 to(const From& data)
 {
-    constexpr bool STRING_TO_INTEGRAL =
-        (requires { data.size(); }) && std::is_integral_v<To>;
-    constexpr bool CHAR_ARRAY_TO_INTEGRAL =
-        (requires(u32 n) { data[n]; }) && std::is_integral_v<To>;
-    constexpr bool INTEGRAL_TO_STRING =
-        std::is_integral_v<From> && std::same_as<To, std::string>;
+    constexpr bool STRING_TO_INTEGRAL = (requires { data.size(); });
+    constexpr bool CHAR_ARRAY_TO_INTEGRAL = (requires(u32 n) { data[n]; });
 
     if constexpr (STRING_TO_INTEGRAL) {
         To tmp{};
@@ -67,18 +63,6 @@ to(const From& data)
             tmp |= static_cast<To>(static_cast<To>(data[i]) << (i * __CHAR_BIT__));
         }
         return tmp;
-    }
-    else if constexpr (INTEGRAL_TO_STRING) {
-        std::size_t str_size{};
-        std::string chars(sizeof(From), '\0');
-        for (std::size_t i = 0; i < sizeof(To) && i < chars.size(); ++i) {
-            chars[i] = static_cast<char>(data >> (i * __CHAR_BIT__));
-            if ((data >> (i * __CHAR_BIT__)) != 0) {
-                str_size = i + 1;
-            }
-        }
-        chars.resize(str_size);
-        return chars;
     }
     else {
         return static_cast<To>(data);
@@ -150,23 +134,7 @@ struct entries {
         }
     }());
 
-    // Support string and integral values
-    using mapped_type = decltype([]() {
-        if constexpr (std::is_same_v<typename pair_type::second_type, std::string>) {
-            static constexpr auto MAX_SIZE = []() {
-                std::size_t max{};
-                for (std::size_t i = 0; i < SIZE; ++i) {
-                    max = std::max(max, Table[i].second.size());
-                }
-                return max;
-            }();
-
-            return get_type<MAX_SIZE>();
-        }
-        else {
-            return typename pair_type::second_type{};
-        }
-    }());
+    using mapped_type = pair_type::second_type;
 
     static constexpr auto MAPPINGS = []() {
         std::array<std::pair<key_type, mapped_type>, SIZE> entries;

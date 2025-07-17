@@ -58,48 +58,6 @@ TEST_CASE("Map string to int", "[library]")
     static_assert(lookup<TEST, LookupMethod::array>("bye") == 6);
 }
 
-TEST_CASE("Map int to string", "[library]")
-{
-    static constexpr auto TEST = std::array{
-        std::pair<uint8_t, std::string>{8, "h"},
-         std::pair<uint8_t, std::string>{6, "b"}
-    };
-
-    static_assert(lookup<TEST, LookupMethod::word>(8) == "h");
-    static_assert(lookup<TEST, LookupMethod::word>(6) == "b");
-
-    static_assert(lookup<TEST, LookupMethod::array>(8) == "h");
-    static_assert(lookup<TEST, LookupMethod::array>(6) == "b");
-}
-
-TEST_CASE("Map string to string", "[library]")
-{
-    static constexpr auto TEST = std::array{
-        std::pair<std::string, std::string>{"a", "b"},
-        std::pair<std::string, std::string>{"c", "d"}
-    };
-
-    static_assert(lookup<TEST, LookupMethod::word>("a") == "b");
-    static_assert(lookup<TEST, LookupMethod::word>("c") == "d");
-
-    static_assert(lookup<TEST, LookupMethod::array>("a") == "b");
-    static_assert(lookup<TEST, LookupMethod::array>("c") == "d");
-}
-
-TEST_CASE("Map const char* to string", "[library]")
-{
-    static constexpr auto TEST = std::array{
-        std::pair<const char*, std::string>{"a", "b"},
-        std::pair<const char*, std::string>{"c", "d"}
-    };
-
-    static_assert(lookup<TEST, LookupMethod::word>("a") == "b");
-    static_assert(lookup<TEST, LookupMethod::word>("c") == "d");
-
-    static_assert(lookup<TEST, LookupMethod::array>("a") == "b");
-    static_assert(lookup<TEST, LookupMethod::array>("c") == "d");
-}
-
 TEST_CASE("Map const char* to int", "[library]")
 {
     static constexpr auto TEST = std::array{
@@ -139,32 +97,6 @@ TEST_CASE("Map many ints to int", "[library]")
 }
 
 // Array tests
-
-TEST_CASE("Map int to long string", "[library]")
-{
-    static constexpr auto TEST = std::array{
-        std::pair<uint8_t, std::string>{8, "hello!"  },
-        std::pair<uint8_t, std::string>{6, "bye!"    },
-        std::pair<uint8_t, std::string>{3, "gutentag"}
-    };
-
-    static_assert(lookup<TEST, LookupMethod::array>(8) == "hello!");
-    static_assert(lookup<TEST, LookupMethod::array>(6) == "bye!");
-    static_assert(lookup<TEST, LookupMethod::array>(3) == "gutentag");
-}
-
-TEST_CASE("Map int to very long string", "[library]")
-{
-    static constexpr auto TEST = std::array{
-        std::pair<uint8_t, std::string>{8, "hello! int128"},
-        std::pair<uint8_t, std::string>{6, "this is long" },
-        std::pair<uint8_t, std::string>{3, "gutentag"     }
-    };
-
-    static_assert(lookup<TEST, LookupMethod::array>(8) == "hello! int128");
-    static_assert(lookup<TEST, LookupMethod::array>(6) == "this is long");
-    static_assert(lookup<TEST, LookupMethod::array>(3) == "gutentag");
-}
 
 TEST_CASE("Map long string to int", "[library]")
 {
