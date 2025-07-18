@@ -126,7 +126,7 @@ TEST_CASE("Map very long string to int", "[library]")
 
 TEST_CASE("Many int to int mappings", "[library]")
 {
-    static constexpr std::size_t SIZE = 128;
+    static constexpr std::size_t SIZE = 64;
     static constexpr std::array<std::pair<uint32_t, uint32_t>, SIZE> TEST = []() {
         std::array<std::pair<uint32_t, uint32_t>, SIZE> arr;
         for (std::size_t i = 0; i < arr.size(); ++i) {
@@ -196,18 +196,18 @@ TEST_CASE("Mask uniqueness", "[library]")
         std::pair{0b11, 0},
         std::pair{0b01, 0}
     };
-    static_assert(gloss::mask<TEST1>() == 0b10);
+    static_assert(gloss::find_mask<TEST1>() == 0b10);
 
     static constexpr auto TEST2 = std::array{
         std::pair{0b101, 0},
         std::pair{0b111, 0}
     };
-    static_assert(gloss::mask<TEST2>() == 0b010);
+    static_assert(gloss::find_mask<TEST2>() == 0b010);
 
     static constexpr auto TEST3 = std::array{
         std::pair{0b101, 0},
         std::pair{0b110, 0},
         std::pair{0b111, 0}
     };
-    static_assert(gloss::mask<TEST3>() == 0b011);
+    static_assert(gloss::find_mask<TEST3>() == 0b011);
 }

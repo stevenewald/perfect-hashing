@@ -234,43 +234,48 @@ private:
 
 template <typename T, T Size = sizeof(T) * __CHAR_BIT__>
 constexpr T
-pext(const T& value, auto mask)
+pext(const T& value, T mask)
 {
-#ifdef __BMI2__
-    if consteval {
+    auto manual_pext = [&]() {
         T tmp{};
-        auto k = 0u;
+        auto dst_pos = 0u;
         for (std::size_t i = 0; i < Size; ++i) {
             if (mask & 1)
-                tmp |= ((value >> i) & 1) << k++;
+                tmp |= ((value >> i) & 1) << dst_pos++;
             mask >>= 1;
         }
         return tmp;
+    };
+
+    if consteval {
+        return manual_pext();
     }
-    else {
-        // only 32 bit
+#ifdef __BMI2__
+    if constexpr (requires { u32{mask}; }) {
         return __builtin_ia32_pext_si(value, mask);
     }
-#else
+    if constexpr (requires { u64{mask}; }) {
+        return static_cast<T>(__builtin_ia32_pext_di(value, mask));
+    }
+
 #endif
+    return manual_pext();
 }
 
 template <const auto& Table>
-constexpr auto
-mask()
+consteval auto
+find_mask() -> entries<Table>::key_type
 {
     using key_type = entries<Table>::key_type;
     static constexpr auto MAPPINGS = entries<Table>::MAPPINGS;
 
     constexpr std::size_t SIZE = Table.size();
     constexpr int NUM_BITS = sizeof(key_type) * __CHAR_BIT__;
-    key_type cur_mask = (key_type{}) - 1; // Start with all bits set
+    key_type cur_mask = (key_type{}) - 1;
 
     for (int bit = NUM_BITS - 1; bit >= 0; --bit) {
-        // Try clearing this bit
         key_type test_mask = cur_mask & ~(key_type(1) << bit);
 
-        // Use a simple array for uniqueness check (could use std::set in non-constexpr)
         bool unique = true;
         for (std::size_t i = 0; i < SIZE && unique; ++i) {
             for (std::size_t j = i + 1; j < SIZE; ++j) {
@@ -282,11 +287,46 @@ mask()
             }
         }
         if (unique) {
-            cur_mask = test_mask; // Bit can be removed
+            cur_mask = test_mask;
         }
     }
     return cur_mask;
 }
+
+template <const auto& Table>
+requires PairRange<decltype(Table)>
+struct lookup_pext {
+    using value_type = u64;
+
+    using key_type = entries<Table>::key_type;
+    using mapped_type = entries<Table>::mapped_type;
+    using result_type = std::ranges::range_value_t<decltype(Table)>::second_type;
+
+    constexpr result_type
+    operator()(const auto& search_key) const noexcept
+    {
+        return TABLE[static_cast<std::size_t>(pext(to<key_type>(search_key), MASK))];
+    }
+
+private:
+    static constexpr key_type MASK = find_mask<Table>();
+    static constexpr key_type SIZE = []() {
+        key_type max{};
+        for (const auto& [key, _] : entries<Table>::MAPPINGS) {
+            max = std::max(max, pext(to<key_type>(key), MASK));
+        }
+        return max + 1u;
+    }();
+
+    static constexpr std::array<mapped_type, SIZE> TABLE = []() {
+        std::array<mapped_type, SIZE> table{};
+        for (const auto& [key, value] : entries<Table>::MAPPINGS) {
+            table[static_cast<std::size_t>(pext(to<key_type>(key), MASK))] =
+                to<mapped_type>(value);
+        }
+        return table;
+    }();
+};
 
 template <const auto& Table>
 requires PairRange<decltype(Table)>
@@ -376,11 +416,17 @@ lookup(const auto& search_key)
             return TABLE64(search_key);
         }
     }
+#ifdef __BMI2__
+    if constexpr (Method != LookupMethod::word) {
+        return lookup_pext<Table>{}(search_key);
+    }
+#else
     if constexpr (Method != LookupMethod::word) {
         if constexpr (constexpr lookup_magic_array<Table> TABLE_ARRAY{}; TABLE_ARRAY) {
             return TABLE_ARRAY(search_key);
         }
     }
+#endif
 }
 
 } // namespace gloss
