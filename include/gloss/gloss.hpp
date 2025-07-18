@@ -159,12 +159,12 @@ concept PairRange =
 
 template <const auto& Table, typename ValueType>
 requires PairRange<decltype(Table)>
-struct lookup_lut {
+struct lookup_magic_lut {
     using key_type = entries<Table>::key_type;
     using mapped_type = entries<Table>::mapped_type;
     using result_type = std::ranges::range_value_t<decltype(Table)>::second_type;
 
-    consteval explicit lookup_lut(std::uint32_t max_attempts = 10'000) noexcept
+    consteval explicit lookup_magic_lut(std::uint32_t max_attempts = 10'000) noexcept
     {
         random::pcg rand_pcg{};
 
@@ -230,14 +230,14 @@ private:
 
 template <const auto& Table>
 requires PairRange<decltype(Table)>
-struct lookup_array {
-    using ValueType = u64;
+struct lookup_magic_array {
+    using value_type = u64;
 
     using key_type = entries<Table>::key_type;
     using mapped_type = entries<Table>::mapped_type;
     using result_type = std::ranges::range_value_t<decltype(Table)>::second_type;
 
-    consteval explicit lookup_array(std::uint32_t max_attempts = 10'000) noexcept
+    consteval explicit lookup_magic_array(std::uint32_t max_attempts = 10'000) noexcept
     {
         random::pcg rand_pcg{};
 
@@ -255,7 +255,7 @@ struct lookup_array {
             }
 
             for (const auto& [key, value] : entries<Table>::MAPPINGS) {
-                if (table_[(ValueType(key) * magic_ >> SHIFT) & SIZE_MASK]
+                if (table_[(to<key_type>(key) * magic_ >> SHIFT) & SIZE_MASK]
                     != to<mapped_type>(value)) {
                     table_ = {};
                     magic_ = {};
@@ -285,7 +285,7 @@ struct lookup_array {
 
 private:
     static constexpr std::size_t SIZE = Table.size();
-    static constexpr ValueType MAX_BITS = []() {
+    static constexpr value_type MAX_BITS = []() {
         u32 max = 0;
         for (const auto& pair : entries<Table>::MAPPINGS) {
             max = std::max(static_cast<u32>(pair.second), max);
@@ -293,13 +293,13 @@ private:
         // std::countl_zero counts differently, so use builtin
         return std::countl_zero(max);
     }();
-    static constexpr ValueType NBITS = (sizeof(u32) * __CHAR_BIT__) - MAX_BITS;
-    static constexpr ValueType SHIFT = (sizeof(u32) * __CHAR_BIT__) - NBITS;
+    static constexpr value_type NBITS = (sizeof(u32) * __CHAR_BIT__) - MAX_BITS;
+    static constexpr value_type SHIFT = (sizeof(u32) * __CHAR_BIT__) - NBITS;
     static constexpr u64 SIZE_MASK =
         (1u << static_cast<unsigned>(std::bit_width(SIZE - 1))) - 1u;
 
-    ValueType magic_{};
-    std::array<mapped_type, SIZE> table_{};
+    value_type magic_{};
+    std::array<value_type, SIZE> table_{};
 };
 
 enum class LookupMethod : std::uint8_t { word, array, any };
@@ -309,15 +309,15 @@ constexpr auto
 lookup(const auto& search_key)
 {
     if constexpr (Method != LookupMethod::array) {
-        if constexpr (constexpr lookup_lut<Table, u32> TABLE32{}; TABLE32) {
+        if constexpr (constexpr lookup_magic_lut<Table, u32> TABLE32{}; TABLE32) {
             return TABLE32(search_key);
         }
-        else if constexpr (constexpr lookup_lut<Table, u64> TABLE64{}; TABLE64) {
+        else if constexpr (constexpr lookup_magic_lut<Table, u64> TABLE64{}; TABLE64) {
             return TABLE64(search_key);
         }
     }
     if constexpr (Method != LookupMethod::word) {
-        if constexpr (constexpr lookup_array<Table> TABLE_ARRAY{}; TABLE_ARRAY) {
+        if constexpr (constexpr lookup_magic_array<Table> TABLE_ARRAY{}; TABLE_ARRAY) {
             return TABLE_ARRAY(search_key);
         }
     }
