@@ -6,8 +6,8 @@ A lightweight [minimal perfect hashing](https://en.wikipedia.org/wiki/Perfect_ha
 
 ## Examples
 
-1. [Int → Int](https://godbolt.org/z/MMWrETx4E)
-2. [String → Int](https://godbolt.org/z/e943G4xh3)
+1. [Int → Int](https://godbolt.org/z/57jaTcqx4)
+2. [String → Int](https://godbolt.org/z/9rjMezqev)
 
 ## What is this?
 

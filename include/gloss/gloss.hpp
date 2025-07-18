@@ -335,24 +335,30 @@ find_mask() -> entries<Table>::key_type
 template <const auto& Table>
 requires PairRange<decltype(Table)>
 struct lookup_pext {
-    using value_type = u64;
-
     using key_type = entries<Table>::key_type;
+    static constexpr key_type MASK = find_mask<Table>();
+    using value_type_wide =
+        std::conditional_t<MASK <= std::numeric_limits<u64>::max(), u64, key_type>;
+    using value_type = std::conditional_t<
+        MASK <= std::numeric_limits<u32>::max(), u32, value_type_wide>;
+    static constexpr value_type MASK_NARROW = static_cast<value_type>(MASK);
+
     using mapped_type = entries<Table>::mapped_type;
     using result_type = std::ranges::range_value_t<decltype(Table)>::second_type;
 
     constexpr result_type
     operator()(const auto& search_key) const noexcept
     {
-        return TABLE[static_cast<std::size_t>(pext(to<key_type>(search_key), MASK))];
+        return TABLE[static_cast<std::size_t>(
+            pext(to<value_type>(search_key), MASK_NARROW)
+        )];
     }
 
 private:
-    static constexpr key_type MASK = find_mask<Table>();
-    static constexpr key_type SIZE = []() {
-        key_type max{};
+    static constexpr value_type SIZE = []() {
+        value_type max{};
         for (const auto& [key, _] : entries<Table>::MAPPINGS) {
-            max = std::max(max, pext(to<key_type>(key), MASK));
+            max = std::max(max, pext(to<value_type>(key), MASK_NARROW));
         }
         return max + 1u;
     }();
@@ -360,7 +366,7 @@ private:
     static constexpr std::array<mapped_type, SIZE> TABLE = []() {
         std::array<mapped_type, SIZE> table{};
         for (const auto& [key, value] : entries<Table>::MAPPINGS) {
-            table[static_cast<std::size_t>(pext(to<key_type>(key), MASK))] =
+            table[static_cast<std::size_t>(pext(to<value_type>(key), MASK_NARROW))] =
                 to<mapped_type>(value);
         }
         return table;
