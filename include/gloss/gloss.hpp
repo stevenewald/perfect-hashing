@@ -53,23 +53,47 @@ to(const From& data)
 {
     constexpr bool STRING_TO_INTEGRAL = (requires { data.size(); });
     constexpr bool CHAR_ARRAY_TO_INTEGRAL = (requires(u32 n) { data[n]; });
-
-    if constexpr (STRING_TO_INTEGRAL) {
-        To tmp{};
-        for (std::size_t i = 0; i < sizeof(To) && i < data.size(); ++i) {
-            tmp |= static_cast<To>(static_cast<To>(data[i]) << (i * __CHAR_BIT__));
+    if consteval {
+        if constexpr (STRING_TO_INTEGRAL) {
+            To tmp{};
+            for (std::size_t i = 0; i < sizeof(To) && i < data.size(); ++i) {
+                tmp |= static_cast<To>(static_cast<To>(data[i]) << (i * __CHAR_BIT__));
+            }
+            return tmp;
         }
-        return tmp;
-    }
-    else if constexpr (CHAR_ARRAY_TO_INTEGRAL) {
-        To tmp{};
-        for (std::size_t i = 0; i < sizeof(To) && data[i] != '\0'; ++i) {
-            tmp |= static_cast<To>(static_cast<To>(data[i]) << (i * __CHAR_BIT__));
+        else if constexpr (CHAR_ARRAY_TO_INTEGRAL) {
+            To tmp{};
+            for (std::size_t i = 0; i < sizeof(To) && data[i] != '\0'; ++i) {
+                tmp |= static_cast<To>(static_cast<To>(data[i]) << (i * __CHAR_BIT__));
+            }
+            return tmp;
         }
-        return tmp;
+        else {
+            return static_cast<To>(data);
+        }
     }
     else {
-        return static_cast<To>(data);
+        if constexpr (requires {
+                          data.data();
+                          data.size();
+                      }) {
+            To tmp{};
+            __builtin_memcpy(
+                &tmp, data.data(), data.size() < sizeof(tmp) ? data.size() : sizeof(tmp)
+            );
+            return tmp;
+        }
+        else if constexpr (CHAR_ARRAY_TO_INTEGRAL) {
+            // TODO
+            To tmp{};
+            for (std::size_t i = 0; i < sizeof(To) && data[i] != '\0'; ++i) {
+                tmp |= static_cast<To>(static_cast<To>(data[i]) << (i * __CHAR_BIT__));
+            }
+            return tmp;
+        }
+        else {
+            return static_cast<To>(data);
+        }
     }
 }
 
