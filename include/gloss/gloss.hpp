@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <cstdint>
+#include <cstring>
 #if __has_include(<experimental/simd>)
 #  include <experimental/simd>
 #endif
@@ -73,23 +74,24 @@ to(const From& data)
         }
     }
     else {
-        if constexpr (requires {
-                          data.data();
-                          data.size();
-                      }) {
+        if constexpr (STRING_TO_INTEGRAL) {
             To tmp{};
             __builtin_memcpy(
-                &tmp, data.data(), data.size() < sizeof(tmp) ? data.size() : sizeof(tmp)
+                &tmp, data.data(), data.size() < sizeof(To) ? data.size() : sizeof(To)
             );
-            return tmp;
+            const auto index = data.size() * __CHAR_BIT__;
+            constexpr auto SIZE = sizeof(To) * __CHAR_BIT__;
+            return index >= SIZE ? tmp
+                                 : static_cast<To>(tmp & ((To(1) << index) - To(1)));
         }
         else if constexpr (CHAR_ARRAY_TO_INTEGRAL) {
-            // TODO
             To tmp{};
-            for (std::size_t i = 0; i < sizeof(To) && data[i] != '\0'; ++i) {
-                tmp |= static_cast<To>(static_cast<To>(data[i]) << (i * __CHAR_BIT__));
-            }
-            return tmp;
+            auto str_len = std::strlen(data);
+            __builtin_memcpy(&tmp, data, str_len < sizeof(To) ? str_len : sizeof(To));
+            const auto index = str_len * __CHAR_BIT__;
+            constexpr auto SIZE = sizeof(To) * __CHAR_BIT__;
+            return index >= SIZE ? tmp
+                                 : static_cast<To>(tmp & ((To(1) << index) - To(1)));
         }
         else {
             return static_cast<To>(data);
