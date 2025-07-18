@@ -79,10 +79,23 @@ to(const From& data)
             __builtin_memcpy(
                 &tmp, data.data(), data.size() < sizeof(To) ? data.size() : sizeof(To)
             );
-            const auto index = data.size() * __CHAR_BIT__;
-            constexpr auto SIZE = sizeof(To) * __CHAR_BIT__;
-            return index >= SIZE ? tmp
-                                 : static_cast<To>(tmp & ((To(1) << index) - To(1)));
+            const auto index = static_cast<unsigned int>(data.size() * __CHAR_BIT__);
+#ifdef __BMI2__
+            if constexpr (sizeof(To) <= sizeof(u32)) {
+                return static_cast<To>(__builtin_ia32_bzhi_si(tmp, index));
+            }
+            else if constexpr (sizeof(To) <= sizeof(u64)) {
+                return __builtin_ia32_bzhi_di(tmp, index);
+            }
+            else {
+#endif
+                constexpr To SIZE = sizeof(To) * __CHAR_BIT__;
+                return index >= SIZE
+                           ? tmp
+                           : static_cast<To>(tmp & ((To(1) << index) - To(1)));
+#ifdef __BMI2__
+            }
+#endif
         }
         else if constexpr (CHAR_ARRAY_TO_INTEGRAL) {
             To tmp{};
