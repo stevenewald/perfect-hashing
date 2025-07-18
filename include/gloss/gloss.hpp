@@ -2,10 +2,14 @@
 
 #include <cassert>
 #include <cstdint>
+#if __has_include(<experimental/simd>)
+#  include <experimental/simd>
+#endif
 
 #include <algorithm>
 #include <array>
 #include <bit>
+#include <iostream>
 #include <ranges>
 #include <string>
 
@@ -227,6 +231,62 @@ private:
     ValueType magic_{};
     ValueType lut_{};
 };
+
+template <typename T, T Size = sizeof(T) * __CHAR_BIT__>
+constexpr T
+pext(const T& value, auto mask)
+{
+#ifdef __BMI2__
+    if consteval {
+        T tmp{};
+        auto k = 0u;
+        for (std::size_t i = 0; i < Size; ++i) {
+            if (mask & 1)
+                tmp |= ((value >> i) & 1) << k++;
+            mask >>= 1;
+        }
+        return tmp;
+    }
+    else {
+        // only 32 bit
+        return __builtin_ia32_pext_si(value, mask);
+    }
+#else
+#endif
+}
+
+template <const auto& Table>
+constexpr auto
+mask()
+{
+    using key_type = entries<Table>::key_type;
+    static constexpr auto MAPPINGS = entries<Table>::MAPPINGS;
+
+    constexpr std::size_t SIZE = Table.size();
+    constexpr int NUM_BITS = sizeof(key_type) * __CHAR_BIT__;
+    key_type cur_mask = (key_type{}) - 1; // Start with all bits set
+
+    for (int bit = NUM_BITS - 1; bit >= 0; --bit) {
+        // Try clearing this bit
+        key_type test_mask = cur_mask & ~(key_type(1) << bit);
+
+        // Use a simple array for uniqueness check (could use std::set in non-constexpr)
+        bool unique = true;
+        for (std::size_t i = 0; i < SIZE && unique; ++i) {
+            for (std::size_t j = i + 1; j < SIZE; ++j) {
+                if (((MAPPINGS[i].first & test_mask) == (MAPPINGS[j].first & test_mask)
+                    )) {
+                    unique = false;
+                    break;
+                }
+            }
+        }
+        if (unique) {
+            cur_mask = test_mask; // Bit can be removed
+        }
+    }
+    return cur_mask;
+}
 
 template <const auto& Table>
 requires PairRange<decltype(Table)>

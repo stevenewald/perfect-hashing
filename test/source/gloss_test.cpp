@@ -182,3 +182,32 @@ TEST_CASE("to<T>(std::string_view)", "[library]")
     static_assert(gloss::to<uint16_t>(STR2) == (uint32_t{'i'} << 8u | uint32_t{'h'}));
     static_assert(gloss::to<uint8_t>(STR2) == uint32_t{'h'});
 }
+
+TEST_CASE("pext", "[library]")
+{
+    constexpr unsigned int MASK = 0b101u;
+    static_assert(gloss::pext(0b010u, MASK) == 0b000u);
+    static_assert(gloss::pext(0b110u, MASK) == 0b010u);
+}
+
+TEST_CASE("Mask uniqueness", "[library]")
+{
+    static constexpr auto TEST1 = std::array{
+        std::pair{0b11, 0},
+        std::pair{0b01, 0}
+    };
+    static_assert(gloss::mask<TEST1>() == 0b10);
+
+    static constexpr auto TEST2 = std::array{
+        std::pair{0b101, 0},
+        std::pair{0b111, 0}
+    };
+    static_assert(gloss::mask<TEST2>() == 0b010);
+
+    static constexpr auto TEST3 = std::array{
+        std::pair{0b101, 0},
+        std::pair{0b110, 0},
+        std::pair{0b111, 0}
+    };
+    static_assert(gloss::mask<TEST3>() == 0b011);
+}

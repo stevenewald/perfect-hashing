@@ -25,6 +25,14 @@ target_link_libraries(
 )
 target_compile_features(gloss_test PRIVATE cxx_std_23)
 
+option(GLOSS_ENABLE_TEST_INTRINSICS "Enable custom intrinsics" ON)
+if(GLOSS_ENABLE_TEST_INTRINSICS)
+    target_compile_options(gloss_test PRIVATE -mbmi2)
+    target_compile_definitions(gloss_test PRIVATE GLOSS_HAVE_BMI2=1)
+endif()
+
+
+
 catch_discover_tests(gloss_test)
 
 # ---- End-of-file commands ----
