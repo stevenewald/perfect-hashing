@@ -2,12 +2,13 @@
 
 ## TLDR
 
-A lightweight [minimal perfect hashing](https://en.wikipedia.org/wiki/Perfect_hash_function) library built to play around with C++ metaprogramming, compile-time optimizations, and neat hashing tricks.
+A lightweight [minimal perfect hashing](https://en.wikipedia.org/wiki/Perfect_hash_function) single-header library built to play around with C++ metaprogramming, compile-time optimizations, and neat hashing tricks.
 
 ## Examples
 
 1. [Int → Int](https://godbolt.org/z/57jaTcqx4)
 2. [String → Int](https://godbolt.org/z/9rjMezqev)
+3. [Long String → Int](https://godbolt.org/z/46G1KWbdW)
 
 ## What is this?
 
