@@ -26,7 +26,7 @@ set_property(
 target_include_directories(
     gloss_gloss ${warning_guard}
     INTERFACE
-    "\$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>"
+    "\$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>"
 )
 
 target_compile_features(gloss_gloss INTERFACE cxx_std_23)

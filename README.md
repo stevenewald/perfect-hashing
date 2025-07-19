@@ -2,17 +2,17 @@
 
 ## TLDR
 
-A lightweight [minimal perfect hashing](https://en.wikipedia.org/wiki/Perfect_hash_function) single-header library built to play around with C++ metaprogramming, compile-time optimizations, and neat hashing tricks.
+A lightweight [minimal perfect hashing](https://en.wikipedia.org/wiki/Perfect_hash_function) [single-header](https://github.com/stevenewald/perfect-hashing/blob/main/gloss.hpp) library built to play around with C++ metaprogramming, compile-time optimizations, and neat hashing tricks.
 
 ## Examples
 
-1. [Int → Int](https://godbolt.org/z/57jaTcqx4)
-2. [String → Int](https://godbolt.org/z/9rjMezqev)
-3. [Long String → Int](https://godbolt.org/z/46G1KWbdW)
+1. [Int → Int](https://godbolt.org/z/96b3bW9eK)
+2. [String → Int](https://godbolt.org/z/EhKea85hc)
+3. [Long String → Int](https://godbolt.org/z/37Krnr7s4)
 
 ## What is this?
 
-A small side project to experiment with compile-time techniques in modern C++. The main parts are in [gloss.hpp](https://github.com/stevenewald/perfect-hashing/blob/main/include/gloss/gloss.hpp) and [gloss_test.cpp](https://github.com/stevenewald/perfect-hashing/blob/main/test/source/gloss_test.cpp).
+A small side project to experiment with compile-time techniques in modern C++. 
 
 ## What is minimal perfect hashing?
 

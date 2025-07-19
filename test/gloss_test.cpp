@@ -1,4 +1,4 @@
-#include "gloss/gloss.hpp"
+#include "gloss.hpp"
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -37,11 +37,11 @@ TEST_CASE("Map int to int 2", "[library]")
         std::pair<uint32_t, uint32_t>{1, 5}
     };
 
-    // REQUIRE(gloss::lookup<TEST>(5) == 1);
-    // REQUIRE(gloss::lookup<TEST>(4) == 2);
-    // REQUIRE(gloss::lookup<TEST>(3) == 3);
-    REQUIRE(gloss::lookup<TEST, LookupMethod::array>(2) == 4);
-    REQUIRE(gloss::lookup<TEST, LookupMethod::array>(1) == 5);
+    static_assert(gloss::lookup<TEST, LookupMethod::array>(5) == 1);
+    static_assert(gloss::lookup<TEST, LookupMethod::array>(4) == 2);
+    static_assert(gloss::lookup<TEST, LookupMethod::array>(3) == 3);
+    static_assert(gloss::lookup<TEST, LookupMethod::array>(2) == 4);
+    static_assert(gloss::lookup<TEST, LookupMethod::array>(1) == 5);
 }
 
 TEST_CASE("Map string to int", "[library]")

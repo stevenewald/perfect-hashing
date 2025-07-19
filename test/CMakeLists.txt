@@ -17,7 +17,7 @@ include(Catch)
 
 # ---- Tests ----
 
-add_executable(gloss_test source/gloss_test.cpp)
+add_executable(gloss_test gloss_test.cpp)
 target_link_libraries(
     gloss_test PRIVATE
     gloss::gloss
