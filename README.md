@@ -7,7 +7,7 @@ A lightweight [minimal perfect hashing](https://en.wikipedia.org/wiki/Perfect_ha
 ## Examples
 
 1. [Int → Int](https://godbolt.org/z/96b3bW9eK)
-2. [String → Int](https://godbolt.org/z/EhKea85hc)
+2. [String → Enum](https://godbolt.org/z/Mc4bjxPqE)
 3. [Long String → Int](https://godbolt.org/z/37Krnr7s4)
 
 ## What is this?

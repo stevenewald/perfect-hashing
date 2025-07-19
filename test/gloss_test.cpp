@@ -27,6 +27,51 @@ TEST_CASE("Map int to int", "[library]")
     static_assert(lookup<TEST, LookupMethod::array>(7u) == 8);
 }
 
+TEST_CASE("Map enum to int", "[library]")
+{
+    enum class TestEnum : uint8_t { first = 5, second = 2 };
+
+    static constexpr auto TEST = std::array{
+        std::pair<TestEnum, uint8_t>{TestEnum::first,  1},
+        std::pair<TestEnum, uint8_t>{TestEnum::second, 2}
+    };
+    static_assert(lookup<TEST, LookupMethod::word>(TestEnum::first) == 1);
+    static_assert(lookup<TEST, LookupMethod::word>(TestEnum::second) == 2);
+
+    static_assert(lookup<TEST, LookupMethod::array>(TestEnum::first) == 1);
+    static_assert(lookup<TEST, LookupMethod::array>(TestEnum::second) == 2);
+}
+
+TEST_CASE("Map int to enum", "[library]")
+{
+    enum class TestEnum : uint8_t { first = 5, second = 2 };
+
+    static constexpr auto TEST = std::array{
+        std::pair<uint8_t, TestEnum>{1, TestEnum::first },
+        std::pair<uint8_t, TestEnum>{2, TestEnum::second}
+    };
+    static_assert(lookup<TEST, LookupMethod::word>(1) == TestEnum::first);
+    static_assert(lookup<TEST, LookupMethod::word>(2) == TestEnum::second);
+
+    static_assert(lookup<TEST, LookupMethod::array>(1) == TestEnum::first);
+    static_assert(lookup<TEST, LookupMethod::array>(2) == TestEnum::second);
+}
+
+TEST_CASE("Map string to enum", "[library]")
+{
+    enum class TestEnum : uint8_t { first = 5, second = 2 };
+
+    static constexpr auto TEST = std::array{
+        std::pair<std::string_view, TestEnum>{"one", TestEnum::first },
+        std::pair<std::string_view, TestEnum>{"two", TestEnum::second}
+    };
+    static_assert(lookup<TEST, LookupMethod::word>("one") == TestEnum::first);
+    static_assert(lookup<TEST, LookupMethod::word>("two") == TestEnum::second);
+
+    static_assert(lookup<TEST, LookupMethod::array>("one") == TestEnum::first);
+    static_assert(lookup<TEST, LookupMethod::array>("two") == TestEnum::second);
+}
+
 TEST_CASE("Map int to int 2", "[library]")
 {
     static constexpr auto TEST = std::array{

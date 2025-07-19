@@ -52,6 +52,7 @@ to(const From& data)
 {
     constexpr bool STRING_TO_INTEGRAL = (requires { data.size(); });
     constexpr bool CHAR_ARRAY_TO_INTEGRAL = (requires(u32 n) { data[n]; });
+    constexpr bool ENUM_TO_INTEGRAL = (std::is_enum_v<From>);
     if consteval {
         if constexpr (STRING_TO_INTEGRAL) {
             To tmp{};
@@ -66,6 +67,9 @@ to(const From& data)
                 tmp |= static_cast<To>(static_cast<To>(data[i]) << (i * __CHAR_BIT__));
             }
             return tmp;
+        }
+        else if constexpr (ENUM_TO_INTEGRAL) {
+            return static_cast<To>(std::to_underlying(data));
         }
         else {
             return static_cast<To>(data);
@@ -104,6 +108,9 @@ to(const From& data)
             return index >= SIZE ? tmp
                                  : static_cast<To>(tmp & ((To(1) << index) - To(1)));
         }
+        else if constexpr (ENUM_TO_INTEGRAL) {
+            return static_cast<To>(std::to_underlying(data));
+        }
         else {
             return static_cast<To>(data);
         }
@@ -141,7 +148,10 @@ struct entries {
 
     // Support string_view, const char*, and integral keys
     using key_type = decltype([]() {
-        if constexpr (requires { Table[0].first.size(); }) {
+        if constexpr (std::is_enum_v<typename pair_type::first_type>) {
+            return std::underlying_type_t<typename pair_type::first_type>{};
+        }
+        else if constexpr (requires { Table[0].first.size(); }) {
             static constexpr auto MAX_SIZE = []() {
                 std::size_t max{};
                 for (std::size_t i = 0; i < SIZE; ++i) {
@@ -175,7 +185,14 @@ struct entries {
         }
     }());
 
-    using mapped_type = pair_type::second_type;
+    using mapped_type = decltype([]() {
+        if constexpr (std::is_enum_v<typename pair_type::second_type>) {
+            return std::underlying_type_t<typename pair_type::second_type>{};
+        }
+        else {
+            return typename pair_type::second_type{};
+        }
+    }());
 
     static constexpr auto MAPPINGS = []() {
         std::array<std::pair<key_type, mapped_type>, SIZE> entries;
@@ -308,10 +325,10 @@ find_mask() -> entries<Table>::key_type
 
     constexpr std::size_t SIZE = Table.size();
     constexpr int NUM_BITS = sizeof(key_type) * __CHAR_BIT__;
-    key_type cur_mask = (key_type{}) - 1;
+    key_type cur_mask = std::numeric_limits<key_type>::max();
 
     for (int bit = NUM_BITS - 1; bit >= 0; --bit) {
-        key_type test_mask = cur_mask & ~(key_type(1) << bit);
+        key_type test_mask = cur_mask & static_cast<key_type>(~(key_type(1) << bit));
 
         bool unique = true;
         for (std::size_t i = 0; i < SIZE && unique; ++i) {
@@ -347,9 +364,10 @@ struct lookup_pext {
     constexpr result_type
     operator()(const auto& search_key) const noexcept
     {
-        return TABLE[static_cast<std::size_t>(
-            pext(to<value_type>(search_key), MASK_NARROW)
-        )];
+        return static_cast<result_type>(
+            TABLE[static_cast<std::size_t>(pext(to<value_type>(search_key), MASK_NARROW)
+            )]
+        );
     }
 
 private:
